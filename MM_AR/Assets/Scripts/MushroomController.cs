@@ -7,10 +7,11 @@ using DLog = MMAR.LogManager;
 [RequireComponent(typeof(Animator))]
 public class MushroomController : MonoBehaviour {
 
-    public delegate void EnemyDied();
-    public event EnemyDied died;
+    public WhackGameController gCtrl;
 
-    public float finalScale = 5f;
+    public float finalScale = 1f;
+
+    public bool kill = false;
 
     private Animator animator;
     private bool isDead = false;
@@ -18,20 +19,37 @@ public class MushroomController : MonoBehaviour {
     private Vector3 growthRate;
     private float timeLeft = 25f;
 
+    public bool IsAlive
+    {
+        get
+        {
+            return !isDead;
+        }
+    }
+
     private void Start()
     {
         animator = GetComponent<Animator>();
         startTime = Time.time;
-        growthRate = Vector3.one * (Time.deltaTime/(finalScale-transform.localScale.x));
+        growthRate = Vector3.one * (finalScale-transform.localScale.x) * Time.deltaTime;
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         if (isDead)
             return;
 
         if (Time.time - startTime < timeLeft)
-            transform.localScale += growthRate;
+            transform.localScale += growthRate*Time.deltaTime;
+
+        if(kill)
+        {
+            kill = true;
+            isDead = true;
+            StartCoroutine(PlayDeadAnim());
+            gCtrl.KilledMushroom();
+            Debug.Log("Killed");
+        }
 
     }
 
@@ -54,13 +72,13 @@ public class MushroomController : MonoBehaviour {
         DLog.Log("Clicked");
         isDead = true;
         StartCoroutine(PlayDeadAnim());
+        gCtrl.KilledMushroom();
+        Debug.Log("Killed");
     }
 
     IEnumerator PlayDeadAnim()
     {
         animator.SetBool("Die", true);
-        if (died != null)
-            died.Invoke();
         yield return new WaitForSeconds(1.2f);
         Destroy(this.gameObject);
     }

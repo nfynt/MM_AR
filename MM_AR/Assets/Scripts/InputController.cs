@@ -5,6 +5,8 @@ using MMAR;
 
 public class InputController : Singleton<InputController> {
 
+    public WhackGameController gameCtrl;
+
     private Camera mainCam;
 
     #region getter setter
@@ -26,18 +28,17 @@ public class InputController : Singleton<InputController> {
     private void Awake()
     {
         mainCam = Camera.main;
+        gameCtrl = WhackGameController.Instance;
     }
 
     public Vector3 GetRandomPositionInFOV()
     {
-        //return mainCam.ViewportToWorldPoint(new Vector3(Random.Range(0.1f, 0.9f), 0f, Random.Range(0.1f, 0.9f)));
-        Vector3 pos;
-        Vector3 dir = mainCam.transform.forward;
-        pos = new Vector3(Random.Range(dir.x + 0.5f, dir.x + 1f),
-            0f,
-            Random.Range(dir.z + 0.5f, dir.z + 1f));
-        //return new Vector3(Random.Range(-5, 5), 0, Random.Range(-5, 5));
-        return pos;
+        Vector3 size = gameCtrl.transform.GetComponent<BoxCollider>().bounds.size;
+
+        return gameCtrl.transform.position + new Vector3((Random.value - 0.5f) * size.x,
+           (Random.value - 0.5f) * size.y,
+           (Random.value - 0.5f) * size.z);
+        
     }
     
 }

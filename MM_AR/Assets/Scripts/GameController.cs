@@ -2,7 +2,7 @@
 using Vuforia;
 using UnityEngine;
 
-public class GameController : DefaultTrackableEventHandler {
+public class GameController : MonoBehaviour {
 
     public enum GameState
     {
@@ -13,14 +13,23 @@ public class GameController : DefaultTrackableEventHandler {
    // public GameObject startCanvas;
     public GameObject homeScreen;
     public GameObject gameScreen;
-    public TextMesh debugTxt;
+    //public TextMesh debugTxt;
     public GameState currState;
 
     private bool foundTrack = false;
 
-    protected override void OnTrackingFound()
+    private void OnEnable()
     {
-        base.OnTrackingFound();
+        OnTrackingFound();
+    }
+
+    private void OnDisable()
+    {
+        OnTrackingLost();
+    }
+
+    public void OnTrackingFound()
+    {
         if (currState == GameState.GAME)
         {
             if (whackController.gameStarted)
@@ -30,51 +39,40 @@ public class GameController : DefaultTrackableEventHandler {
 
             foundTrack = true;
         }
-        debugTxt.text = "plane found";
+        //debugTxt.text = "plane found";
     }
 
-    public void TrackingFound()
+    public void OnTrackingLost()
     {
-        debugTxt.text += base.mTrackableBehaviour.CurrentStatus.ToString();
-
-        if(!foundTrack)
-        {
-            OnTrackingFound();
-        }
-    }
-
-    protected override void OnTrackingLost()
-    {
-        base.OnTrackingLost();
-        if (currState == GameState.GAME)
-        {
+        
             whackController.PauseResumeGame(true);
-        }
-        whackController.notificationTxt.text = base.mTrackableBehaviour.CurrentStatus.ToString();
-        debugTxt.text = "plane lost";
+        
+        whackController.notificationTxt.text = "Lost tracking";
+        //debugTxt.text = "plane lost";
     }
 
-    protected override void Start()
+    void Start()
     {
-        base.Start();
-
         InputController.Instance.MainCamera = homeScreen.transform.GetComponentInChildren<Camera>();
         homeScreen.SetActive(true);
         gameScreen.SetActive(false);
         //WhackGameController.gStarted += WhackGameController_gStarted;
         WhackGameController.gEnded += WhackGameController_gEnded;
+        WhackGameController.gReset += WhackGameController_gReset;
         currState = GameState.HOME;
     }
 
-    public void EnterGameScene()
+    private void WhackGameController_gReset()
+    {
+        
+    }
+
+    public void EnterGameScene(bool start=true)
     {
         //whackController.StartGame();
-        if (base.mTrackableBehaviour == null)
-            whackController.EnableGameScene(false);
-        else
-            whackController.EnableGameScene(base.mTrackableBehaviour.CurrentStatus == TrackableBehaviour.Status.DETECTED ||
-                base.mTrackableBehaviour.CurrentStatus == TrackableBehaviour.Status.TRACKED ||
-                base.mTrackableBehaviour.CurrentStatus == TrackableBehaviour.Status.EXTENDED_TRACKED);
+
+        whackController.EnableGameScene(start);
+
         homeScreen.SetActive(false);
         gameScreen.SetActive(true);
         InputController.Instance.MainCamera = gameScreen.transform.GetComponentInChildren<Camera>();

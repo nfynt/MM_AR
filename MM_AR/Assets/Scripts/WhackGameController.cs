@@ -22,7 +22,11 @@ public class WhackGameController : Singleton<WhackGameController> {
     public GameObject mushroomContainer;
     public TextMesh notificationTxt;
 
-    private int currScore;
+    public int currScore;
+
+    public GameObject planeFinder;
+    public GameObject resetCanvas;
+
     private GameObject currMush;
     private bool pausedState;
     public bool gameStarted = false;
@@ -48,9 +52,9 @@ public class WhackGameController : Singleton<WhackGameController> {
     {
         notificationTxt.text = "Scanning...";
         gameStarted = scanningDone;
-
-        if (gameStarted)
-            Invoke("StartGame", 1.4f);
+        resetCanvas.SetActive(false);
+        //if (gameStarted)
+          //  Invoke("StartGame", 1.4f);
     }
 
     public void StartGame()
@@ -62,12 +66,10 @@ public class WhackGameController : Singleton<WhackGameController> {
         notificationTxt.text = "Score: " + currScore.ToString();
         gameStarted = true;
         Invoke("SpawnTarget", 2f);
-    }
 
-    private void Update()
-    {
-        if (Input.touchCount > 1)
-            StartGame();
+        planeFinder.SetActive(false);
+
+        Debug.Log("Game started");
     }
 
     public void PauseResumeGame(bool pause=false)
@@ -88,9 +90,13 @@ public class WhackGameController : Singleton<WhackGameController> {
 
     void SpawnTarget(Vector3 wrldPos, Quaternion wrldRot)
     {
+        if (currMush != null && currMush.GetComponent<MushroomController>().IsAlive)
+            return;
+
         currMush = Instantiate(mushroomPrefab, wrldPos, wrldRot,mushroomContainer.transform) as GameObject;
-        currMush.GetComponent<MushroomController>().died += KilledMushroom;
-        currMush.transform.LookAt(InputController.Instance.MainCamera.transform, Vector3.up);
+        currMush.GetComponent<MushroomController>().gCtrl = this;
+        Quaternion lookang = Quaternion.LookRotation(InputController.Instance.MainCamera.transform.position - currMush.transform.position);
+        currMush.transform.rotation = Quaternion.Euler(0, lookang.eulerAngles.y, 0);
     }
 
     void SpawnTarget()
@@ -98,14 +104,18 @@ public class WhackGameController : Singleton<WhackGameController> {
         SpawnTarget(InputController.Instance.GetRandomPositionInFOV(), Quaternion.identity);
     }
 
-    private void KilledMushroom()
+    public void KilledMushroom()
     {
         currScore++;
+        currMush = null;
         notificationTxt.text = "Score: " + currScore.ToString();
         if (dEnemy != null)
             dEnemy.Invoke();
-
+#if !UNITY_EDITOR
         if(currScore>=10)
+#else
+        if (currScore >= 2)
+#endif
         {
             EndGame(true);
             return;
@@ -114,24 +124,41 @@ public class WhackGameController : Singleton<WhackGameController> {
         Invoke("SpawnTarget", 2f);
     }
 
-    public void ResetGame()
+    public void ResetGame(bool gameFinished=true)
     {
         if (gReset != null)
             gReset.Invoke();
+
+        if(gameFinished)
+        {
+
+            planeFinder.SetActive(true);
+            EnableGameScene(true);
+        }
+
+        currScore = 0;
+
     }
 
     public void EndGame(bool win=false)
     {
-        if (gEnded != null)
-            gEnded.Invoke(win);
 
         if(win)
         {
             DLog.Log("Won");
+            notificationTxt.text = "You Won!";
         }
         else
         {
             DLog.Log("Lost");
         }
+
+        resetCanvas.SetActive(true);
+        gameStarted = false;
+
+        //planeFinder.SetActive(true);
+
+        //if (gEnded != null)
+        //    gEnded.Invoke(true);
     }
 }
